@@ -1,0 +1,27 @@
+/* Scrollable dropdown for pickup time */
+select[name='billing_time_'] {
+  width: 100%;
+}
+
+select[name='billing_time_']:focus {
+  outline: 2px solid #007cba;
+}
+
+select[name='billing_time_'][disabled] {
+  background-color: #f5f5f5;
+  color: #999;
+  cursor: default !important;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.select2-container[id^="select2-billing_time_"] .select2-search--dropdown {
+  display: none !important;
+}
+
+#place_order[disabled] {
+  background-color: #ccc !important;
+  cursor: not-allowed !important;
+  opacity: 0.6;
+}
+
