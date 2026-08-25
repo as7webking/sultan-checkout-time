@@ -1,0 +1,191 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Sultan Checkout Time 1.3.0\n"
+"Language: de_DE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Pickup Time Settings"
+msgstr "Abholzeit-Einstellungen"
+
+msgid "Pickup Time"
+msgstr "Abholzeit"
+
+msgid "Disable Orders"
+msgstr "Bestellungen deaktivieren"
+
+msgid "Temporarily disable checkout"
+msgstr "Kasse vorübergehend deaktivieren"
+
+msgid "Orders Open From (HH:MM)"
+msgstr "Bestellannahme ab (HH:MM)"
+
+msgid "Orders Close At (HH:MM)"
+msgstr "Bestellannahme bis (HH:MM)"
+
+msgid "Pickup Start Hour (24h)"
+msgstr "Abholung ab Stunde (24 Std.)"
+
+msgid "Pickup End Hour (24h)"
+msgstr "Abholung bis Stunde (24 Std.)"
+
+msgid "Working Days"
+msgstr "Arbeitstage"
+
+msgid "Time Slot Interval (minutes)"
+msgstr "Zeitfenster-Intervall (Minuten)"
+
+msgid "Distance Shipping and Address Autocomplete"
+msgstr "Entfernungsbasierte Lieferung und Adressvervollständigung"
+
+msgid "Configure Google API access, store location, closed days, delivery radius, fees, and caps."
+msgstr "Google-API-Zugriff, Geschäftsadresse, Arbeitszeiten, Lieferradius, Gebühren und Obergrenzen konfigurieren."
+
+msgid "Google server API key"
+msgstr "Google Server-API-Schlüssel"
+
+msgid "Used on the server for Distance Matrix API requests."
+msgstr "Wird auf dem Server für Anfragen an die Distance Matrix API verwendet."
+
+msgid "Google browser API key"
+msgstr "Google Browser-API-Schlüssel"
+
+msgid "Used in the checkout browser for Maps JavaScript API and Places API address suggestions."
+msgstr "Wird an der Kasse für Adressvorschläge der Maps JavaScript API und Places API verwendet."
+
+msgid "Store address"
+msgstr "Geschäftsadresse"
+
+msgid "Enter the complete address used as the delivery origin."
+msgstr "Vollständige Adresse eingeben, die als Startpunkt der Lieferung verwendet wird."
+
+msgid "Weekly store schedule"
+msgstr "Wöchentliche Öffnungszeiten"
+
+msgid "Maximum delivery distance"
+msgstr "Maximale Lieferentfernung"
+
+msgid "Distance pricing tiers"
+msgstr "Entfernungsabhängige Preisstufen"
+
+msgid "Day"
+msgstr "Tag"
+
+msgid "Open"
+msgstr "Geöffnet"
+
+msgid "Opening time"
+msgstr "Öffnungszeit"
+
+msgid "Closing time"
+msgstr "Schließzeit"
+
+msgid "Working day"
+msgstr "Arbeitstag"
+
+msgid "Clear both time fields to keep an enabled day open for the full day. Overnight schedules are supported."
+msgstr "Beide Zeitfelder leeren, damit ein aktivierter Tag ganztägig geöffnet bleibt. Öffnungszeiten über Mitternacht werden unterstützt."
+
+msgid "Distance range"
+msgstr "Entfernungsbereich"
+
+msgid "Fee in EUR"
+msgstr "Gebühr in EUR"
+
+msgid "Maximum cap in EUR"
+msgstr "Maximale Obergrenze in EUR"
+
+msgid "Monday"
+msgstr "Montag"
+
+msgid "Tuesday"
+msgstr "Dienstag"
+
+msgid "Wednesday"
+msgstr "Mittwoch"
+
+msgid "Thursday"
+msgstr "Donnerstag"
+
+msgid "Friday"
+msgstr "Freitag"
+
+msgid "Saturday"
+msgstr "Samstag"
+
+msgid "Sunday"
+msgstr "Sonntag"
+
+msgid "The store is closed today. Checkout is currently unavailable."
+msgstr "Das Geschäft ist heute geschlossen. Die Kasse ist derzeit nicht verfügbar."
+
+msgid "No pickup slots available"
+msgstr "Keine Abholzeiten verfügbar"
+
+msgid "— Select time —"
+msgstr "— Zeit auswählen —"
+
+msgid "We are currently closed. Please place your order during working hours."
+msgstr "Wir haben derzeit geschlossen. Bitte bestellen Sie während der Öffnungszeiten."
+
+msgid "The selected pickup time is invalid. Please choose another slot."
+msgstr "Die ausgewählte Abholzeit ist ungültig. Bitte wählen Sie ein anderes Zeitfenster."
+
+msgid "Pickup Time:"
+msgstr "Abholzeit:"
+
+msgid "Phone number"
+msgstr "Telefonnummer"
+
+msgid "e.g. +49 170 1234567"
+msgstr "z. B. +49 170 1234567"
+
+msgid "Please enter a billing phone number."
+msgstr "Bitte geben Sie eine Telefonnummer für die Rechnungsadresse ein."
+
+msgid "Please enter a complete shipping address."
+msgstr "Bitte geben Sie eine vollständige Lieferadresse ein."
+
+msgid "Please enter a complete delivery address."
+msgstr "Bitte geben Sie eine vollständige Lieferadresse ein."
+
+msgid "Delivery distance calculation is not configured. Please contact the store."
+msgstr "Die Berechnung der Lieferentfernung ist nicht konfiguriert. Bitte kontaktieren Sie das Geschäft."
+
+msgid "The delivery distance service is temporarily unavailable. Please try again."
+msgstr "Der Dienst zur Berechnung der Lieferentfernung ist vorübergehend nicht verfügbar. Bitte versuchen Sie es erneut."
+
+msgid "The shipping address could not be verified. Please check the address and try again."
+msgstr "Die Lieferadresse konnte nicht bestätigt werden. Bitte prüfen Sie die Adresse und versuchen Sie es erneut."
+
+msgid "Delivery is not available. This address is farther than our %s km delivery limit."
+msgstr "Eine Lieferung ist nicht möglich. Diese Adresse liegt außerhalb unseres Lieferradius von %s km."
+
+msgid "Delivery availability could not be verified. Please check the address and try again."
+msgstr "Die Liefermöglichkeit konnte nicht geprüft werden. Bitte prüfen Sie die Adresse und versuchen Sie es erneut."
+
+msgid "No delivery methods are available for this address."
+msgstr "Für diese Adresse sind keine Liefermethoden verfügbar."
+
+msgid "Delivery Fee (%s km)"
+msgstr "Liefergebühr (%s km)"
+
+msgid "Delivery is not available for distances over %s km."
+msgstr "Für Entfernungen über %s km ist keine Lieferung möglich."
+
+msgid "Local pickup"
+msgstr "Abholung vor Ort"
+
+msgid "Offer free local pickup at checkout"
+msgstr "Kostenlose Abholung vor Ort an der Kasse anbieten"
+
+msgid "Local pickup label"
+msgstr "Bezeichnung für Abholung vor Ort"
+
+msgid "delivery is not available for this address"
+msgstr "für diese Adresse ist keine Lieferung möglich"

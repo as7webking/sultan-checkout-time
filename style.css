@@ -1,0 +1,142 @@
+.sultan-time-select__native {
+	position: absolute !important;
+	width: 1px !important;
+	height: 1px !important;
+	margin: 0 !important;
+	padding: 0 !important;
+	overflow: hidden !important;
+	opacity: 0 !important;
+	pointer-events: none !important;
+}
+
+.sultan-time-select {
+	position: relative;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+	font-size: 16px;
+	line-height: 1.5;
+}
+
+.sultan-time-select__button {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 48px;
+	padding: 10px 14px;
+	border: 1px solid #ced4da;
+	border-radius: 6px;
+	background: #fff;
+	color: #212529;
+	font: inherit;
+	text-align: left;
+	box-shadow: none;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+.sultan-time-select__button:hover {
+	border-color: #86b7fe;
+}
+
+.sultan-time-select__button:focus {
+	border-color: #86b7fe;
+	outline: 0;
+	box-shadow: 0 0 0 0.22rem rgba(13, 110, 253, 0.22);
+}
+
+.sultan-time-select__chevron {
+	width: 9px;
+	height: 9px;
+	margin-left: 14px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg) translateY(-2px);
+	transition: transform 0.15s ease;
+	flex: 0 0 auto;
+}
+
+.sultan-time-select.is-open .sultan-time-select__chevron {
+	transform: rotate(225deg) translate(-2px, -2px);
+}
+
+.sultan-time-select__menu {
+	position: absolute;
+	z-index: 100020;
+	top: calc(100% + 5px);
+	left: 0;
+	right: 0;
+	display: none;
+	max-height: min(260px, 45vh);
+	padding: 6px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	border: 1px solid rgba(0, 0, 0, 0.15);
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.16);
+	box-sizing: border-box;
+}
+
+.sultan-time-select.is-open .sultan-time-select__menu {
+	display: block;
+}
+
+.sultan-time-select.opens-up .sultan-time-select__menu {
+	top: auto;
+	bottom: calc(100% + 5px);
+}
+
+.sultan-time-select__option {
+	display: block;
+	width: 100%;
+	min-height: 40px;
+	padding: 8px 12px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: #212529;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.sultan-time-select__option:hover,
+.sultan-time-select__option:focus {
+	outline: 0;
+	background: #e9ecef;
+}
+
+.sultan-time-select__option.is-selected {
+	background: #0d6efd;
+	color: #fff;
+}
+
+.sultan-time-select__option:disabled {
+	background: transparent;
+	color: #6c757d;
+	cursor: not-allowed;
+}
+
+.woocommerce form .form-row .sultan-time-select,
+.wc-block-components-checkout-step .sultan-time-select {
+	margin: 0;
+}
+
+.woocommerce ul#shipping_method li label,
+.wc-block-components-shipping-rates-control__package .wc-block-components-radio-control__label-group {
+	white-space: normal;
+}
+
+.pac-container {
+	z-index: 100030 !important;
+}
+
+#place_order[disabled] {
+	background-color: #dcdcde !important;
+	border-color: #dcdcde !important;
+	color: #50575e !important;
+	cursor: not-allowed !important;
+	opacity: 1;
+}
