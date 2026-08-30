@@ -442,21 +442,102 @@ function sultan_pickup_time_is_valid( $selected ) {
 	return isset( $allowed[ $selected ] );
 }
 
-// Classic checkout field.
-add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
-	$fields['order']['sultan_pickup_time'] = [
-		'type'     => 'select',
-		'label'    => __( 'Pickup Time', 'sultan-checkout-time' ),
-		'required' => true,
-		'options'  => array_merge(
+function sultan_get_pickup_time_checkout_field() {
+	return [
+		'type'        => 'select',
+		'label'       => __( 'Pickup Time', 'sultan-checkout-time' ),
+		'required'    => true,
+		'options'     => array_merge(
 			[ '' => __( '— Select time —', 'sultan-checkout-time' ) ],
 			sultan_get_pickup_time_options()
 		),
-		'priority' => 120,
-		'class'    => [ 'form-row-wide' ],
+		'priority'    => 120,
+		'class'       => [ 'form-row-wide', 'sultan-checkout-time-field' ],
+		'input_class' => [ 'sultan-checkout-time-select' ],
+		'clear'       => true,
 	];
+}
+
+function sultan_get_datenschutz_checkout_field() {
+	return [
+		'type'        => 'checkbox',
+		'label'       => __( 'I agree to the privacy policy.', 'sultan-checkout-time' ),
+		'required'    => true,
+		'priority'    => 130,
+		'class'       => [ 'form-row-wide', 'sultan-datenschutz-field' ],
+		'label_class' => [ 'sultan-datenschutz-label' ],
+		'clear'       => true,
+	];
+}
+
+// Classic checkout field.
+add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
+	$fields['order']['sultan_pickup_time'] = sultan_get_pickup_time_checkout_field();
+	$fields['order']['sultan_datenschutz'] = sultan_get_datenschutz_checkout_field();
 
 	return $fields;
+} );
+
+add_action( 'wp_head', function () {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
+	?>
+	<style>
+		.woocommerce-checkout .sultan-checkout-time-field {
+			margin-top: 12px;
+		}
+
+		.woocommerce-checkout .sultan-checkout-time-select {
+			display: block;
+			width: 100%;
+			height: 48px;
+			padding: 0 44px 0 14px;
+			border: 1px solid rgba(15, 23, 42, 0.18);
+			border-radius: 12px;
+			background-color: #ffffff;
+			background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5L10 12.5L15 7.5' stroke='%235f6f7f' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+			background-repeat: no-repeat;
+			background-position: right 14px center;
+			background-size: 18px 18px;
+			font-size: 15px;
+			line-height: 1.4;
+			color: #1f2937;
+			box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		.woocommerce-checkout .sultan-checkout-time-select:focus {
+			border-color: rgba(37, 99, 235, 0.7);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+			outline: none;
+		}
+
+		.woocommerce-checkout .sultan-datenschutz-field {
+			margin-top: 12px;
+		}
+
+		.woocommerce-checkout .sultan-datenschutz-field label {
+			display: flex;
+			align-items: flex-start;
+			gap: 10px;
+			font-size: 14px;
+			line-height: 1.5;
+			color: #374151;
+		}
+
+		.woocommerce-checkout .sultan-datenschutz-field .input-checkbox {
+			width: 18px;
+			height: 18px;
+			margin-top: 2px;
+			flex-shrink: 0;
+			accent-color: #2563eb;
+		}
+	</style>
+	<?php
 } );
 
 // Checkout Block field.
@@ -507,6 +588,10 @@ add_action( 'woocommerce_checkout_process', function () {
 			wc_add_notice( __( 'The selected pickup time is invalid. Please choose another slot.', 'sultan-checkout-time' ), 'error' );
 		}
 	}
+
+	if ( empty( $_POST['sultan_datenschutz'] ) ) {
+		wc_add_notice( __( 'Please confirm the privacy policy before placing your order.', 'sultan-checkout-time' ), 'error' );
+	}
 } );
 
 // Classic checkout validation for opening hours / disable switch.
@@ -523,6 +608,10 @@ add_action( 'woocommerce_checkout_create_order', function ( $order ) {
 			'_sultan_pickup_time',
 			sanitize_text_field( wp_unslash( $_POST['sultan_pickup_time'] ) )
 		);
+	}
+
+	if ( isset( $_POST['sultan_datenschutz'] ) ) {
+		$order->update_meta_data( '_sultan_datenschutz_accepted', 'yes' );
 	}
 }, 10, 1 );
 
