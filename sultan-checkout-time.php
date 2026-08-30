@@ -43,6 +43,24 @@ add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function ( $li
 	return $links;
 } );
 
+	// Inject modern inline styles for the checkout time dropdown.
+	add_action( 'wp_head', function () {
+		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+			return;
+		}
+
+		// Simple, contained styles to keep the plugin self-contained.
+		echo '<style id="sultan-checkout-time-inline">'
+			. '.sultan-time-select__native{appearance:none;-webkit-appearance:none;-moz-appearance:none;background:transparent;border:1px solid #d1d5db;padding:0 48px 0 14px;height:48px;line-height:48px;border-radius:8px;font-size:15px;color:#111;}
+			.sultan-time-select{position:relative;display:block;max-width:100%;}
+			.sultan-time-select__button{display:flex;align-items:center;justify-content:space-between;width:100%;height:48px;padding:0 14px;border:1px solid transparent;border-radius:8px;background:#fff;cursor:pointer;}
+			.sultan-time-select__chevron{width:18px;height:18px;display:inline-block;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23666' d='M6.7 7.3a1 1 0 011.4 0L10 9.2l1.9-1.9a1 1 0 111.4 1.4l-2.6 2.6a1 1 0 01-1.4 0L6.7 8.7a1 1 0 010-1.4z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;border-radius:3px;}
+			.sultan-time-select__menu{position:absolute;left:0;right:0;z-index:9999;max-height:320px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(17,24,39,0.08);margin-top:8px;padding:6px 6px;}
+			.sultan-time-select__option{display:block;width:100%;padding:10px;border-radius:6px;background:transparent;border:0;text-align:left;}
+			.sultan-time-select__option.is-selected{background:#f3f4f6;}
+		</style>';
+	} );
+
 // Admin menu.
 add_action( 'admin_menu', function () {
 	add_options_page(
@@ -442,22 +460,70 @@ function sultan_pickup_time_is_valid( $selected ) {
 	return isset( $allowed[ $selected ] );
 }
 
-// Classic checkout field.
-add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
-	$fields['order']['sultan_pickup_time'] = [
-		'type'     => 'select',
-		'label'    => __( 'Pickup Time', 'sultan-checkout-time' ),
-		'required' => true,
-		'options'  => array_merge(
-			[ '' => __( '— Select time —', 'sultan-checkout-time' ) ],
-			sultan_get_pickup_time_options()
-		),
-		'priority' => 120,
-		'class'    => [ 'form-row-wide' ],
-	];
+// Classic checkout: render the pickup-time select using woocommerce_form_field()
+add_action( 'woocommerce_after_order_notes', function ( $checkout ) {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
 
-	return $fields;
+	$options = array_merge( [ '' => __( '— Select time —', 'sultan-checkout-time' ) ], sultan_get_pickup_time_options() );
+
+	$value = '';
+	if ( isset( $_POST['sultan_pickup_time'] ) ) {
+		$value = sanitize_text_field( wp_unslash( $_POST['sultan_pickup_time'] ) );
+	} elseif ( WC()->session ) {
+		$value = WC()->session->get( 'sultan_pickup_time', '' );
+	}
+
+	woocommerce_form_field(
+		'sultan_pickup_time',
+		[
+			'type'     => 'select',
+			'label'    => __( 'Pickup Time', 'sultan-checkout-time' ),
+			'required' => true,
+			'options'  => $options,
+			'class'    => [ 'form-row-wide' ],
+			'id'       => 'sultan_pickup_time',
+		],
+		$value
+	);
+
+	// Datenschutz / Privacy checkbox (required).
+	$fields = method_exists( $checkout, 'get_checkout_fields' ) ? $checkout->get_checkout_fields() : [];
+
+	if ( ! isset( $fields['order']['sultan_privacy_agree'] ) ) {
+		$privacy_label = sprintf(
+			/* translators: %s: privacy policy link */
+			__( 'I agree to the %s', 'sultan-checkout-time' ),
+			'<a href="' . esc_url( get_privacy_policy_url() ) . '" target="_blank">' . esc_html__( 'Privacy Policy', 'sultan-checkout-time' ) . '</a>'
+		);
+
+		woocommerce_form_field(
+			'sultan_privacy_agree',
+			[
+				'type'     => 'checkbox',
+				'label'    => $privacy_label,
+				'required' => true,
+				'class'    => [ 'form-row-wide sultan-privacy-field' ],
+			],
+			isset( $_POST['sultan_privacy_agree'] ) ? 1 : 0
+		);
+	}
+}, 20 );
+
+// Validate the privacy checkbox on classic checkout.
+add_action( 'woocommerce_checkout_process', function () {
+	if ( empty( $_POST['sultan_privacy_agree'] ) ) {
+		wc_add_notice( __( 'Please agree to the Privacy Policy.', 'sultan-checkout-time' ), 'error' );
+	}
 } );
+
+// Save the privacy checkbox to order meta.
+add_action( 'woocommerce_checkout_create_order', function ( $order ) {
+	if ( isset( $_POST['sultan_privacy_agree'] ) ) {
+		$order->update_meta_data( '_sultan_privacy_agree', 1 );
+	}
+}, 20, 1 );
 
 // Checkout Block field.
 add_action( 'woocommerce_init', function () {
