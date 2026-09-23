@@ -43,23 +43,22 @@ add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), function ( $li
 	return $links;
 } );
 
-	// Inject modern inline styles for the checkout time dropdown.
-	add_action( 'wp_head', function () {
-		if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
-			return;
-		}
+// Inject modern inline styles for the checkout time dropdown.
+add_action( 'wp_head', function () {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return;
+	}
 
-		// Simple, contained styles to keep the plugin self-contained.
-		echo '<style id="sultan-checkout-time-inline">'
-			. '.sultan-time-select__native{appearance:none;-webkit-appearance:none;-moz-appearance:none;background:transparent;border:1px solid #d1d5db;padding:0 48px 0 14px;height:48px;line-height:48px;border-radius:8px;font-size:15px;color:#111;}
-			.sultan-time-select{position:relative;display:block;max-width:100%;}
-			.sultan-time-select__button{display:flex;align-items:center;justify-content:space-between;width:100%;height:48px;padding:0 14px;border:1px solid transparent;border-radius:8px;background:#fff;cursor:pointer;}
-			.sultan-time-select__chevron{width:18px;height:18px;display:inline-block;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath fill='%23666' d='M6.7 7.3a1 1 0 011.4 0L10 9.2l1.9-1.9a1 1 0 111.4 1.4l-2.6 2.6a1 1 0 01-1.4 0L6.7 8.7a1 1 0 010-1.4z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;border-radius:3px;}
-			.sultan-time-select__menu{position:absolute;left:0;right:0;z-index:9999;max-height:320px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(17,24,39,0.08);margin-top:8px;padding:6px 6px;}
-			.sultan-time-select__option{display:block;width:100%;padding:10px;border-radius:6px;background:transparent;border:0;text-align:left;}
-			.sultan-time-select__option.is-selected{background:#f3f4f6;}
-		</style>';
-	} );
+	echo '<style id="sultan-checkout-time-inline">'
+		. '.sultan-time-select__native{appearance:none;-webkit-appearance:none;-moz-appearance:none;background:transparent;border:1px solid #d1d5db;padding:0 48px 0 14px;height:48px;line-height:48px;border-radius:8px;font-size:15px;color:#111;}'
+		. '.sultan-time-select{position:relative;display:block;max-width:100%;}'
+		. '.sultan-time-select__button{display:flex;align-items:center;justify-content:space-between;width:100%;height:48px;padding:0 14px;border:1px solid transparent;border-radius:8px;background:#fff;cursor:pointer;}'
+		. '.sultan-time-select__chevron{width:18px;height:18px;display:inline-block;background-image:url("data:image/svg+xml;utf8,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 20 20%27%3E%3Cpath fill=%27%23666%27 d=%27M6.7 7.3a1 1 0 011.4 0L10 9.2l1.9-1.9a1 1 0 111.4 1.4l-2.6 2.6a1 1 0 01-1.4 0L6.7 8.7a1 1 0 010-1.4z%27/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:center;border-radius:3px;}'
+		. '.sultan-time-select__menu{position:absolute;left:0;right:0;z-index:9999;max-height:320px;overflow:auto;background:#fff;border:1px solid #e5e7eb;border-radius:8px;box-shadow:0 8px 24px rgba(17,24,39,0.08);margin-top:8px;padding:6px 6px;}'
+		. '.sultan-time-select__option{display:block;width:100%;padding:10px;border-radius:6px;background:transparent;border:0;text-align:left;}'
+		. '.sultan-time-select__option.is-selected{background:#f3f4f6;}'
+	.'</style>';
+} );
 
 // Admin menu.
 add_action( 'admin_menu', function () {
@@ -308,13 +307,6 @@ function sultan_pickup_orders_are_closed() {
 	return false;
 }
 
-/**
- * Return the configured days on which checkout is closed.
- *
- * Use full English weekday names as returned by DateTime::format( 'l' ).
- *
- * @return string[]
- */
 function sultan_get_store_closed_days() {
 	$settings = sultan_get_distance_shipping_settings();
 	$closed   = [];
@@ -328,9 +320,6 @@ function sultan_get_store_closed_days() {
 	return $closed;
 }
 
-/**
- * Determine whether the store is closed at the current WordPress-local time.
- */
 function sultan_store_is_closed_today() {
 	$settings = sultan_get_distance_shipping_settings();
 	$now      = current_datetime();
@@ -365,9 +354,6 @@ function sultan_store_is_closed_today() {
 	return false;
 }
 
-/**
- * Display the closed-day message on the cart page.
- */
 add_action( 'woocommerce_before_cart', function () {
 	if ( sultan_store_is_closed_today() ) {
 		wc_print_notice(
@@ -493,7 +479,6 @@ add_action( 'woocommerce_after_order_notes', function ( $checkout ) {
 
 	if ( ! isset( $fields['order']['sultan_privacy_agree'] ) ) {
 		$privacy_label = sprintf(
-			/* translators: %s: privacy policy link */
 			__( 'I agree to the %s', 'sultan-checkout-time' ),
 			'<a href="' . esc_url( get_privacy_policy_url() ) . '" target="_blank">' . esc_html__( 'Privacy Policy', 'sultan-checkout-time' ) . '</a>'
 		);
@@ -592,6 +577,40 @@ add_action( 'woocommerce_checkout_create_order', function ( $order ) {
 	}
 }, 10, 1 );
 
+// Store API: accept, validate and save delivery time from JSON payloads (Blocks / Store API)
+add_action( 'woocommerce_store_api_checkout_update_order_meta', function ( $order, $request ) {
+	// Normalize incoming params (supports WP_REST_Request, arrays, and generic objects)
+	$params = [];
+
+	if ( is_array( $request ) ) {
+		$params = $request;
+	} elseif ( class_exists( 'WP_REST_Request' ) && $request instanceof WP_REST_Request ) {
+		$params = $request->get_json_params() ?: $request->get_params();
+	} elseif ( is_object( $request ) && method_exists( $request, 'get_params' ) ) {
+		$params = $request->get_params();
+	}
+
+	$delivery_time = isset( $params['sultan_delivery_time'] ) ? $params['sultan_delivery_time'] : ( $params['sultan_pickup_time'] ?? null );
+
+	if ( null === $delivery_time || '' === trim( (string) $delivery_time ) ) {
+		throw new Exception( __( 'Please select a pickup time.', 'sultan-checkout-time' ) );
+	}
+
+	$delivery_time = sanitize_text_field( (string) $delivery_time );
+
+	if ( ! sultan_pickup_time_is_valid( $delivery_time ) ) {
+		throw new Exception( __( 'The selected pickup time is invalid. Please choose another slot.', 'sultan-checkout-time' ) );
+	}
+
+	// Save into the existing meta used by admin and classic flows for backwards compatibility.
+	if ( $order instanceof WC_Order ) {
+		$order->update_meta_data( '_sultan_pickup_time', $delivery_time );
+		// also store a delivery-specific key for future-proofing
+		$order->update_meta_data( '_sultan_delivery_time', $delivery_time );
+	}
+
+}, 10, 2 );
+
 // Show in admin order page.
 add_action( 'woocommerce_admin_order_data_after_billing_address', function ( $order ) {
 	$pickup_time = $order->get_meta( '_sultan_pickup_time' );
@@ -601,20 +620,10 @@ add_action( 'woocommerce_admin_order_data_after_billing_address', function ( $or
 	}
 } );
 
-/**
- * ============================================================
- * RESTAURANT DELIVERY & CHECKOUT
- * ============================================================
- */
-
-/**
- * Make billing phone required.
- */
+// Make billing phone required.
 add_filter( 'woocommerce_billing_fields', 'sultan_customize_billing_phone', 9999 );
 
-/**
- * Force the core phone field to be required in Checkout Blocks.
- */
+// Force the core phone field to be required in Checkout Blocks.
 add_filter( 'option_woocommerce_checkout_phone_field', function () {
 	return 'required';
 } );
@@ -630,9 +639,6 @@ function sultan_customize_billing_phone( $fields ) {
 	return $fields;
 }
 
-/**
- * Validate the billing phone for the classic checkout.
- */
 add_action( 'woocommerce_checkout_process', function () {
 	$phone = isset( $_POST['billing_phone'] )
 		? sanitize_text_field( wp_unslash( $_POST['billing_phone'] ) )
@@ -646,18 +652,12 @@ add_action( 'woocommerce_checkout_process', function () {
 	}
 } );
 
-
-/**
- * Distance shipping configuration.
- */
+// Distance shipping configuration constants.
 define( 'SULTAN_GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY' );
 define( 'SULTAN_GOOGLE_MAPS_BROWSER_API_KEY', 'YOUR_GOOGLE_MAPS_BROWSER_API_KEY' );
 define( 'SULTAN_STORE_ADDRESS', 'YOUR_STORE_ADDRESS' );
 define( 'SULTAN_MAX_DELIVERY_DISTANCE_KM', 30.0 );
 
-/**
- * Return all supported weekday names.
- */
 function sultan_get_weekday_choices() {
 	return [
 		'Monday',
@@ -670,9 +670,6 @@ function sultan_get_weekday_choices() {
 	];
 }
 
-/**
- * Return a localized weekday label while keeping English names as stable keys.
- */
 function sultan_get_weekday_label( $day ) {
 	$labels = [
 		'Monday'    => __( 'Monday', 'sultan-checkout-time' ),
@@ -687,9 +684,6 @@ function sultan_get_weekday_label( $day ) {
 	return $labels[ $day ] ?? $day;
 }
 
-/**
- * Return default distance shipping settings.
- */
 function sultan_get_default_distance_shipping_settings() {
 	$default_open_time  = sanitize_text_field( get_option( 'sultan_pickup_order_start', '' ) );
 	$default_close_time = sanitize_text_field( get_option( 'sultan_pickup_order_end', '' ) );
@@ -723,9 +717,6 @@ function sultan_get_default_distance_shipping_settings() {
 	];
 }
 
-/**
- * Return saved distance shipping settings merged with defaults.
- */
 function sultan_get_distance_shipping_settings() {
 	$defaults = sultan_get_default_distance_shipping_settings();
 	$saved    = get_option( 'sultan_distance_shipping_settings', [] );
@@ -745,9 +736,6 @@ function sultan_get_distance_shipping_settings() {
 	return $settings;
 }
 
-/**
- * Sanitize distance shipping settings before saving them.
- */
 function sultan_sanitize_distance_shipping_settings( $input ) {
 	$defaults = sultan_get_default_distance_shipping_settings();
 	$input    = is_array( $input ) ? $input : [];
@@ -814,9 +802,6 @@ function sultan_sanitize_distance_shipping_settings( $input ) {
 	return $output;
 }
 
-/**
- * Render the weekly store schedule.
- */
 function sultan_render_weekly_schedule_field() {
 	$settings = sultan_get_distance_shipping_settings();
 
@@ -839,9 +824,6 @@ function sultan_render_weekly_schedule_field() {
 	echo '<p class="description">' . esc_html__( 'Clear both time fields to keep an enabled day open for the full day. Overnight schedules are supported.', 'sultan-checkout-time' ) . '</p>';
 }
 
-/**
- * Render editable distance pricing tiers.
- */
 function sultan_render_distance_tiers_field() {
 	$settings = sultan_get_distance_shipping_settings();
 	$minimum  = 0.0;
@@ -861,9 +843,6 @@ function sultan_render_distance_tiers_field() {
 	echo '</tbody></table>';
 }
 
-/**
- * Load Google Places address autocomplete on cart and checkout pages.
- */
 add_action( 'wp_enqueue_scripts', 'sultan_enqueue_address_autocomplete', 20 );
 
 function sultan_enqueue_address_autocomplete() {
@@ -912,9 +891,6 @@ function sultan_enqueue_address_autocomplete() {
 	);
 }
 
-/**
- * Return the browser-side address autocomplete integration.
- */
 function sultan_get_address_autocomplete_script() {
 	return <<<'JS'
 (function () {
@@ -1039,9 +1015,6 @@ function sultan_get_address_autocomplete_script() {
 JS;
 }
 
-/**
- * Build a normalized destination address from a shipping package.
- */
 function sultan_get_package_destination_address( $package ) {
 	$destination = isset( $package['destination'] ) && is_array( $package['destination'] )
 		? $package['destination']
@@ -1070,9 +1043,6 @@ function sultan_get_package_destination_address( $package ) {
 	return implode( ', ', $parts );
 }
 
-/**
- * Build the current checkout shipping destination.
- */
 function sultan_get_checkout_destination_address() {
 	if ( ! WC()->customer ) {
 		return '';
@@ -1101,11 +1071,6 @@ function sultan_get_checkout_destination_address() {
 	return implode( ', ', $parts );
 }
 
-/**
- * Get the exact driving distance in kilometers and cache it for 24 hours.
- *
- * @return float|WP_Error
- */
 function sultan_get_driving_distance_km( $destination_address ) {
 	$settings            = sultan_get_distance_shipping_settings();
 	$destination_address = trim( sanitize_text_field( $destination_address ) );
@@ -1176,12 +1141,6 @@ function sultan_get_driving_distance_km( $destination_address ) {
 	return $distance_km;
 }
 
-/**
- * Return the fixed delivery fee for a road-distance tier.
- * Each cap is enforced as an upper bound on its tier fee.
- *
- * @return float|null
- */
 function sultan_get_distance_shipping_cost( $distance_km ) {
 	$settings = sultan_get_distance_shipping_settings();
 	$tiers    = $settings['tiers'];
@@ -1195,9 +1154,6 @@ function sultan_get_distance_shipping_cost( $distance_km ) {
 	return null;
 }
 
-/**
- * Store the latest delivery availability result in the WooCommerce session.
- */
 function sultan_set_delivery_status( $status, $distance_km = 0, $message = '' ) {
 	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
 		return;
@@ -1213,9 +1169,6 @@ function sultan_set_delivery_status( $status, $distance_km = 0, $message = '' ) 
 	);
 }
 
-/**
- * Return a clear no-delivery message for the active customer address.
- */
 function sultan_get_no_delivery_message() {
 	$settings = sultan_get_distance_shipping_settings();
 	$status   = function_exists( 'WC' ) && WC()->session
@@ -1224,7 +1177,6 @@ function sultan_get_no_delivery_message() {
 
 	if ( 'over_limit' === ( $status['status'] ?? '' ) ) {
 		return sprintf(
-			/* translators: %s: maximum delivery distance in kilometers */
 			__( 'Delivery is not available. This address is farther than our %s km delivery limit.', 'sultan-checkout-time' ),
 			number_format_i18n( $settings['max_distance'], 1 )
 		);
@@ -1240,15 +1192,91 @@ function sultan_get_no_delivery_message() {
 add_filter( 'woocommerce_cart_no_shipping_available_html', 'sultan_get_no_delivery_message' );
 add_filter( 'woocommerce_no_shipping_available_html', 'sultan_get_no_delivery_message' );
 
-/**
- * Add the plugin-managed free local pickup choice.
- */
 function sultan_add_local_pickup_rate( $rates, $unavailable_delivery = false ) {
 	$settings = sultan_get_distance_shipping_settings();
 
 	if ( empty( $settings['enable_pickup'] ) || ! class_exists( 'WC_Shipping_Rate' ) ) {
 		return $rates;
 	}
+
+		/**
+		 * Calculate dynamic delivery fee based on driving distance and add it to the cart.
+		 *
+		 * - Reads the customer's shipping address from WC()->customer.
+		 * - If address is incomplete, exits cleanly (no errors) so Blocks / Store API checkout does not 500.
+		 * - Uses sultan_get_driving_distance_km() to compute driving distance (km).
+		 * - Applies a simple pricing table: <=3km => 2.00, >3 && <=7 => 4.50, >7 => 7.00.
+		 * - Injects the fee into the cart via WC_Cart::add_fee() so totals update via AJAX.
+		 *
+		 * @param WC_Cart|null $cart Cart instance (passed by WC). Optional fallback to WC()->cart.
+		 */
+		function sultan_calculate_delivery_distance_price( $cart = null ) {
+			if ( is_admin() && ! defined( 'DOING_AJAX' ) ) {
+				return;
+			}
+
+			if ( null === $cart ) {
+				if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+					return;
+				}
+				$cart = WC()->cart;
+			}
+
+			// Read customer shipping address pieces from WC()->customer
+			if ( ! function_exists( 'WC' ) || ! WC()->customer ) {
+				return;
+			}
+
+			$addr1    = trim( (string) WC()->customer->get_shipping_address_1() );
+			$addr2    = trim( (string) WC()->customer->get_shipping_address_2() );
+			$postcode = trim( (string) WC()->customer->get_shipping_postcode() );
+			$city     = trim( (string) WC()->customer->get_shipping_city() );
+
+			// Safe fallback: if the customer hasn't entered address yet, do nothing.
+			if ( '' === $addr1 && '' === $addr2 && '' === $postcode && '' === $city ) {
+				return;
+			}
+
+			// Build a sensible destination address for the distance lookup (append country for reliability).
+			$parts = array_filter( array_map( 'trim', array_map( 'sanitize_text_field', [ $addr1, $addr2, $postcode, $city, 'Bergheim, Germany' ] ) ) );
+			$destination_address = implode( ', ', $parts );
+
+			if ( '' === $destination_address ) {
+				return;
+			}
+
+			// Calculate driving distance (km). The helper returns float or WP_Error.
+			$distance_km = sultan_get_driving_distance_km( $destination_address );
+
+			if ( is_wp_error( $distance_km ) ) {
+				// Do not add a fee if distance cannot be calculated; avoid raising errors.
+				return;
+			}
+
+			$distance_km = (float) $distance_km;
+
+			// Simple dynamic pricing rules
+			if ( $distance_km <= 3.0 ) {
+				$fee_amount = 2.00;
+			} elseif ( $distance_km <= 7.0 ) {
+				$fee_amount = 4.50;
+			} else {
+				$fee_amount = 7.00;
+			}
+
+			$label = __( 'Delivery Fee (distance)', 'sultan-checkout-time' );
+
+			// Prevent duplicate fees: update existing fee if present.
+			foreach ( $cart->get_fees() as $fee_obj ) {
+				if ( isset( $fee_obj->name ) && $fee_obj->name === $label ) {
+					$fee_obj->amount = (float) $fee_amount;
+					return;
+				}
+			}
+
+			// Add the fee. Not taxable by default here; adjust third parameter to true if taxable.
+			$cart->add_fee( $label, (float) $fee_amount, false );
+		}
 
 	foreach ( $rates as $rate ) {
 		if ( 'local_pickup' === $rate->get_method_id() ) {
@@ -1278,9 +1306,6 @@ function sultan_add_local_pickup_rate( $rates, $unavailable_delivery = false ) {
 	return $rates;
 }
 
-/**
- * Keep only local-pickup rates when courier delivery is unavailable.
- */
 function sultan_only_local_pickup_rates( $rates, $unavailable_delivery = true ) {
 	$pickup_rates = [];
 
@@ -1293,9 +1318,6 @@ function sultan_only_local_pickup_rates( $rates, $unavailable_delivery = true ) 
 	return sultan_add_local_pickup_rate( $pickup_rates, $unavailable_delivery );
 }
 
-/**
- * Determine whether the customer selected local pickup in classic checkout.
- */
 function sultan_customer_selected_local_pickup() {
 	if ( ! function_exists( 'WC' ) || ! WC()->session ) {
 		return false;
@@ -1316,17 +1338,31 @@ function sultan_customer_selected_local_pickup() {
 	return false;
 }
 
-/**
- * Apply distance pricing to every configured WooCommerce flat-rate method.
- */
 add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
 	$settings            = sultan_get_distance_shipping_settings();
 	$destination_address = sultan_get_package_destination_address( $package );
 	$rates               = sultan_add_local_pickup_rate( $rates );
 
 	if ( '' === $destination_address ) {
-		sultan_set_delivery_status( 'incomplete' );
-		return $rates;
+		// Try to read from the current WC customer (Blocks / Store API sends data differently)
+		if ( function_exists( 'WC' ) && WC()->customer ) {
+			$addr1    = WC()->customer->get_shipping_address_1();
+			$addr2    = WC()->customer->get_shipping_address_2();
+			$postcode = WC()->customer->get_shipping_postcode();
+			$city     = WC()->customer->get_shipping_city();
+			$state    = WC()->customer->get_shipping_state();
+			$country  = WC()->customer->get_shipping_country();
+
+			$parts = array_map( 'sanitize_text_field', [ $addr1, $addr2, $postcode, $city, $state, $country ] );
+			$parts = array_filter( array_map( 'trim', $parts ) );
+
+			$destination_address = implode( ', ', $parts );
+		}
+
+		if ( '' === $destination_address ) {
+			sultan_set_delivery_status( 'incomplete' );
+			return $rates;
+		}
 	}
 
 	$distance_km = sultan_get_driving_distance_km( $destination_address );
@@ -1361,7 +1397,6 @@ add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
 		$rate->set_cost( $cost );
 		$rate->set_label(
 			sprintf(
-				/* translators: %s: driving distance in kilometers */
 				__( 'Delivery Fee (%s km)', 'sultan-checkout-time' ),
 				number_format_i18n( $distance_km, 1 )
 			)
@@ -1378,7 +1413,6 @@ add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
 		$rates['sultan_distance_delivery'] = new WC_Shipping_Rate(
 			'sultan_distance_delivery',
 			sprintf(
-				/* translators: %s: driving distance in kilometers */
 				__( 'Delivery Fee (%s km)', 'sultan-checkout-time' ),
 				number_format_i18n( $distance_km, 1 )
 			),
@@ -1392,9 +1426,9 @@ add_filter( 'woocommerce_package_rates', function ( $rates, $package ) {
 	return $rates;
 }, 100, 2 );
 
-/**
- * Block checkout when the address cannot be verified or exceeds 30 km.
- */
+// Hook into cart calculation to add dynamic distance-based delivery fee.
+add_action( 'woocommerce_cart_calculate_fees', 'sultan_calculate_delivery_distance_price', 20 );
+
 add_action( 'woocommerce_checkout_process', function () {
 	if ( sultan_customer_selected_local_pickup() ) {
 		return;
@@ -1417,7 +1451,6 @@ add_action( 'woocommerce_checkout_process', function () {
 	if ( $distance_km > (float) $settings['max_distance'] ) {
 		wc_add_notice(
 			sprintf(
-				/* translators: %s: maximum delivery distance in kilometers */
 				__( 'Delivery is not available for distances over %s km.', 'sultan-checkout-time' ),
 				number_format_i18n( $settings['max_distance'], 1 )
 			),
@@ -1426,9 +1459,6 @@ add_action( 'woocommerce_checkout_process', function () {
 	}
 } );
 
-/**
- * Validate phone and delivery radius for WooCommerce Checkout Blocks.
- */
 add_action(
 	'woocommerce_store_api_checkout_update_order_from_request',
 	function ( $order ) {
@@ -1488,7 +1518,6 @@ add_action(
 		if ( $distance_km > (float) $settings['max_distance'] ) {
 			throw new Exception(
 				sprintf(
-					/* translators: %s: maximum delivery distance in kilometers */
 					__( 'Delivery is not available. This address is farther than our %s km delivery limit.', 'sultan-checkout-time' ),
 					number_format_i18n( $settings['max_distance'], 1 )
 				)
@@ -1499,9 +1528,6 @@ add_action(
 	1
 );
 
-/**
- * Invalidate WooCommerce shipping caches after saving these settings.
- */
 add_action( 'update_option_sultan_distance_shipping_settings', function () {
 	if ( class_exists( 'WC_Cache_Helper' ) ) {
 		WC_Cache_Helper::get_transient_version( 'shipping', true );
