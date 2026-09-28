@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sultan Checkout Time
 Description: Add pickup time selection to WooCommerce checkout with admin settings.
-Version: 1.3.0
+Version: 1.4.0
 Author: Ahmed Sultanline
 Author URI: https://ahmedsultanline.com
 Text Domain: sultan-checkout-time
@@ -24,14 +24,14 @@ add_action( 'wp_enqueue_scripts', function () {
 		'sultan-checkout-time-style',
 		plugin_dir_url( __FILE__ ) . 'style.css',
 		[],
-		'1.3.0'
+		'1.4.0'
 	);
 
 	wp_enqueue_script(
 		'sultan-checkout-time-frontend',
 		plugin_dir_url( __FILE__ ) . 'assets/frontend.js',
 		[],
-		'1.3.0',
+		'1.4.0',
 		true
 	);
 } );
@@ -65,6 +65,15 @@ add_action( 'admin_init', function () {
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_interval', [ 'type' => 'integer' ] );
 	register_setting(
 		'sultan_pickup_settings',
+		'sultan_minimum_order_amount',
+		[
+			'type'              => 'number',
+			'sanitize_callback' => 'sultan_sanitize_minimum_order_amount',
+			'default'           => 0,
+		]
+	);
+	register_setting(
+		'sultan_pickup_settings',
 		'sultan_distance_shipping_settings',
 		[
 			'type'              => 'array',
@@ -82,6 +91,19 @@ add_action( 'admin_init', function () {
 			$value = get_option( 'sultan_pickup_disable_orders', false );
 			echo '<label><input type="checkbox" name="sultan_pickup_disable_orders" value="1" ' . checked( 1, $value, false ) . '> ';
 			echo esc_html__( 'Temporarily disable checkout', 'sultan-checkout-time' ) . '</label>';
+		},
+		'sultan_pickup_settings',
+		'sultan_pickup_section'
+	);
+
+	add_settings_field(
+		'sultan_minimum_order_amount',
+		__( 'Minimum order amount', 'sultan-checkout-time' ),
+		function () {
+			$value    = (float) get_option( 'sultan_minimum_order_amount', 0 );
+			$currency = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
+			echo '<input type="number" min="0" step="0.01" name="sultan_minimum_order_amount" value="' . esc_attr( number_format( $value, 2, '.', '' ) ) . '" /> ' . esc_html( $currency );
+			echo '<p class="description">' . esc_html__( 'Based on discounted product totals, excluding shipping and tax. Set to 0 to disable.', 'sultan-checkout-time' ) . '</p>';
 		},
 		'sultan_pickup_settings',
 		'sultan_pickup_section'
@@ -275,6 +297,31 @@ function sultan_pickup_settings_page() {
 		</form>
 	</div>
 	<?php
+}
+
+function sultan_sanitize_minimum_order_amount( $value ) {
+	$value = is_scalar( $value ) ? sanitize_text_field( (string) $value ) : 0;
+	$value = function_exists( 'wc_format_decimal' ) ? wc_format_decimal( $value ) : (float) $value;
+
+	return max( 0, (float) $value );
+}
+
+function sultan_minimum_order_is_met( $products_total ) {
+	$minimum = (float) get_option( 'sultan_minimum_order_amount', 0 );
+
+	return $minimum <= 0 || (float) $products_total >= $minimum;
+}
+
+function sultan_get_minimum_order_error_message() {
+	$minimum = (float) get_option( 'sultan_minimum_order_amount', 0 );
+	$amount  = function_exists( 'wc_price' )
+		? wp_strip_all_tags( wc_price( $minimum ) )
+		: number_format_i18n( $minimum, 2 );
+
+	return sprintf(
+		__( 'The minimum order amount is %s, excluding shipping and tax.', 'sultan-checkout-time' ),
+		$amount
+	);
 }
 
 // Check if ordering is currently allowed.
@@ -506,6 +553,12 @@ add_action( 'woocommerce_checkout_process', function () {
 		if ( ! sultan_pickup_time_is_valid( $selected ) ) {
 			wc_add_notice( __( 'The selected pickup time is invalid. Please choose another slot.', 'sultan-checkout-time' ), 'error' );
 		}
+	}
+} );
+
+add_action( 'woocommerce_checkout_process', function () {
+	if ( WC()->cart && ! sultan_minimum_order_is_met( WC()->cart->get_cart_contents_total() ) ) {
+		wc_add_notice( sultan_get_minimum_order_error_message(), 'error' );
 	}
 } );
 
@@ -1374,6 +1427,16 @@ add_action(
 			throw new Exception(
 				__( 'Please enter a billing phone number.', 'sultan-checkout-time' )
 			);
+		}
+
+		$products_total = 0.0;
+
+		foreach ( $order->get_items( 'line_item' ) as $item ) {
+			$products_total += (float) $item->get_total();
+		}
+
+		if ( ! sultan_minimum_order_is_met( $products_total ) ) {
+			throw new Exception( sultan_get_minimum_order_error_message() );
 		}
 
 		foreach ( $order->get_items( 'shipping' ) as $shipping_item ) {
