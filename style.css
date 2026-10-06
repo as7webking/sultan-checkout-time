@@ -140,3 +140,28 @@
 	cursor: not-allowed !important;
 	opacity: 1;
 }
+
+.sultan-minimum-order-notice {
+	margin: 0 0 16px;
+	padding: 12px 14px;
+	border-left: 4px solid #b45309;
+	background: #fff7ed;
+	color: #431407;
+}
+
+.sultan-minimum-order-notice p {
+	margin: 0 0 6px;
+}
+
+.sultan-minimum-order-notice a {
+	font-weight: 600;
+}
+
+#place_order[disabled],
+.wc-block-components-checkout-place-order-button[disabled] {
+	background-color: #dcdcde !important;
+	border-color: #dcdcde !important;
+	color: #50575e !important;
+	cursor: not-allowed !important;
+	opacity: 1;
+}
