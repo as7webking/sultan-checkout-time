@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sultan Checkout Time
 Description: Add pickup time selection to WooCommerce checkout with admin settings.
-Version: 1.4.0
+Version: 1.5.0
 Author: Ahmed Sultanline
 Author URI: https://ahmedsultanline.com
 Text Domain: sultan-checkout-time
@@ -24,15 +24,50 @@ add_action( 'wp_enqueue_scripts', function () {
 		'sultan-checkout-time-style',
 		plugin_dir_url( __FILE__ ) . 'style.css',
 		[],
-		'1.4.0'
+		'1.5.0'
 	);
 
 	wp_enqueue_script(
 		'sultan-checkout-time-frontend',
 		plugin_dir_url( __FILE__ ) . 'assets/frontend.js',
 		[],
-		'1.4.0',
+		'1.5.0',
 		true
+	);
+
+	$is_checkout  = function_exists( 'is_checkout' ) && is_checkout();
+	$fixed_country = $is_checkout ? sultan_get_fixed_shipping_country() : '';
+	if ( $is_checkout ) {
+		$checkout_css = '';
+		if ( '' !== $fixed_country ) {
+			$checkout_css .= '.wc-block-components-address-form__country{display:none!important;}';
+		}
+		$distance_settings = sultan_get_distance_shipping_settings();
+		if ( ! empty( $distance_settings['hide_state_field'] ) ) {
+			$checkout_css .= '.wc-block-components-address-form__state{display:none!important;}';
+		}
+		if ( '' !== $checkout_css ) {
+			wp_add_inline_style( 'sultan-checkout-time-style', $checkout_css );
+		}
+	}
+
+	$cart_total = function_exists( 'WC' ) && WC()->cart ? (float) WC()->cart->get_cart_contents_total() : 0;
+	wp_localize_script(
+		'sultan-checkout-time-frontend',
+		'sultanCheckoutConfig',
+		[
+			'minimumOrder' => (float) get_option( 'sultan_minimum_order_amount', 0 ),
+			'itemsTotal'   => $cart_total,
+			'requiresShipping' => function_exists( 'WC' ) && WC()->cart ? WC()->cart->needs_shipping() : false,
+			'currency'     => function_exists( 'get_woocommerce_currency' ) ? get_woocommerce_currency() : '',
+			'currencyDecimals' => function_exists( 'wc_get_price_decimals' ) ? wc_get_price_decimals() : 2,
+			'fixedCountry' => $fixed_country,
+			'isCheckout'   => $is_checkout,
+			'locale'       => determine_locale(),
+			'shopUrl'      => function_exists( 'wc_get_page_permalink' ) ? wc_get_page_permalink( 'shop' ) : home_url( '/' ),
+			'minimumText'  => __( 'The minimum order is %1$s. Add %2$s more in products to continue.', 'sultan-checkout-time' ),
+			'shopLabel'    => __( 'Browse the menu and add products', 'sultan-checkout-time' ),
+		]
 	);
 } );
 
@@ -98,7 +133,7 @@ add_action( 'admin_init', function () {
 
 	add_settings_field(
 		'sultan_minimum_order_amount',
-		__( 'Minimum order amount', 'sultan-checkout-time' ),
+		__( 'Minimum product amount for delivery', 'sultan-checkout-time' ),
 		function () {
 			$value    = (float) get_option( 'sultan_minimum_order_amount', 0 );
 			$currency = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '';
@@ -275,6 +310,17 @@ add_action( 'admin_init', function () {
 	);
 
 	add_settings_field(
+		'sultan_hide_state_field',
+		__( 'Checkout region field', 'sultan-checkout-time' ),
+		function () {
+			$settings = sultan_get_distance_shipping_settings();
+			echo '<label><input type="checkbox" name="sultan_distance_shipping_settings[hide_state_field]" value="1" ' . checked( ! empty( $settings['hide_state_field'] ), true, false ) . '> ' . esc_html__( 'Hide Bundesland / State fields at checkout', 'sultan-checkout-time' ) . '</label>';
+		},
+		'sultan_pickup_settings',
+		'sultan_distance_shipping_section'
+	);
+
+	add_settings_field(
 		'sultan_distance_shipping_tiers',
 		__( 'Distance pricing tiers', 'sultan-checkout-time' ),
 		'sultan_render_distance_tiers_field',
@@ -323,6 +369,184 @@ function sultan_get_minimum_order_error_message() {
 		$amount
 	);
 }
+
+function sultan_render_minimum_order_data() {
+	if ( ! function_exists( 'WC' ) || ! WC()->cart ) {
+		return;
+	}
+
+	echo '<span id="sultan-minimum-order-data" hidden data-items-total="' . esc_attr( WC()->cart->get_cart_contents_total() ) . '"></span>';
+}
+
+add_action( 'woocommerce_review_order_before_payment', 'sultan_render_minimum_order_data' );
+
+add_filter( 'woocommerce_update_order_review_fragments', function ( $fragments ) {
+	ob_start();
+	sultan_render_minimum_order_data();
+	$fragments['#sultan-minimum-order-data'] = ob_get_clean();
+
+	return $fragments;
+} );
+
+function sultan_get_fixed_shipping_country( $shipping_countries = null ) {
+	if ( ! function_exists( 'WC' ) || ! WC()->countries ) {
+		return '';
+	}
+
+	if ( null === $shipping_countries ) {
+		$shipping_countries = WC()->countries->get_shipping_countries();
+	}
+
+	if ( ! is_array( $shipping_countries ) || empty( $shipping_countries ) ) {
+		return '';
+	}
+
+	if ( 1 === count( $shipping_countries ) ) {
+		return (string) array_key_first( $shipping_countries );
+	}
+
+	if ( ! class_exists( 'WC_Shipping_Zones' ) ) {
+		return '';
+	}
+
+	$zone_countries = [];
+	foreach ( WC_Shipping_Zones::get_zones() as $zone ) {
+		$has_delivery_method = false;
+		foreach ( $zone['shipping_methods'] ?? [] as $method ) {
+			if ( ! empty( $method->enabled ) && 'yes' === $method->enabled && 'local_pickup' !== $method->id ) {
+				$has_delivery_method = true;
+				break;
+			}
+		}
+
+		if ( ! $has_delivery_method ) {
+			continue;
+		}
+
+		foreach ( $zone['zone_locations'] ?? [] as $location ) {
+			$location_type = is_object( $location ) ? ( $location->type ?? '' ) : ( $location['type'] ?? '' );
+			$location_code = is_object( $location ) ? ( $location->code ?? '' ) : ( $location['code'] ?? '' );
+
+			if ( ! in_array( $location_type, [ 'country', 'state' ], true ) ) {
+				return '';
+			}
+
+			$country_code = 'state' === $location_type
+				? strtoupper( strtok( (string) $location_code, ':' ) )
+				: strtoupper( (string) $location_code );
+
+			if ( isset( $shipping_countries[ $country_code ] ) ) {
+				$zone_countries[ $country_code ] = true;
+			}
+		}
+	}
+
+	$default_zone = WC_Shipping_Zones::get_zone( 0 );
+	if ( $default_zone ) {
+		foreach ( $default_zone->get_shipping_methods( true ) as $method ) {
+			if ( 'local_pickup' !== $method->id ) {
+				return '';
+			}
+		}
+	}
+
+	if ( 1 !== count( $zone_countries ) ) {
+		return '';
+	}
+
+	$country_codes = array_keys( $zone_countries );
+	return (string) $country_codes[0];
+}
+
+add_filter( 'woocommerce_countries_shipping_countries', function ( $countries ) {
+	$is_checkout_ajax = wp_doing_ajax()
+		&& isset( $_GET['wc-ajax'] )
+		&& 'update_order_review' === sanitize_text_field( wp_unslash( $_GET['wc-ajax'] ) );
+	$is_store_api = defined( 'REST_REQUEST' )
+		&& REST_REQUEST
+		&& isset( $_SERVER['REQUEST_URI'] )
+		&& false !== strpos( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_URI'] ) ), '/wc/store/' );
+
+	if ( ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) && ! $is_checkout_ajax && ! $is_store_api ) {
+		return $countries;
+	}
+
+	$fixed_country = sultan_get_fixed_shipping_country( $countries );
+
+	return '' !== $fixed_country && isset( $countries[ $fixed_country ] )
+		? [ $fixed_country => $countries[ $fixed_country ] ]
+		: $countries;
+}, 99 );
+
+add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
+	$fixed_country = sultan_get_fixed_shipping_country();
+	if ( '' !== $fixed_country ) {
+		unset( $fields['billing']['billing_country'], $fields['shipping']['shipping_country'] );
+	}
+
+	$settings = sultan_get_distance_shipping_settings();
+	if ( ! empty( $settings['hide_state_field'] ) ) {
+		unset( $fields['billing']['billing_state'], $fields['shipping']['shipping_state'] );
+	}
+
+	return $fields;
+}, 100 );
+
+add_filter( 'woocommerce_checkout_get_value', function ( $value, $input ) {
+	if ( in_array( $input, [ 'billing_country', 'shipping_country' ], true ) ) {
+		$fixed_country = sultan_get_fixed_shipping_country();
+		if ( '' !== $fixed_country ) {
+			return $fixed_country;
+		}
+	}
+
+	return $value;
+}, 10, 2 );
+
+add_filter( 'woocommerce_checkout_posted_data', function ( $data ) {
+	$fixed_country = sultan_get_fixed_shipping_country();
+	if ( '' !== $fixed_country ) {
+		$data['billing_country']  = $fixed_country;
+		$data['shipping_country'] = $fixed_country;
+	}
+
+	return $data;
+} );
+
+add_filter( 'woocommerce_get_country_locale', function ( $locale ) {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return $locale;
+	}
+
+	$settings = sultan_get_distance_shipping_settings();
+	if ( empty( $settings['hide_state_field'] ) ) {
+		return $locale;
+	}
+
+	foreach ( $locale as &$country_locale ) {
+		$country_locale['state'] = array_merge(
+			$country_locale['state'] ?? [],
+			[ 'hidden' => true, 'required' => false ]
+		);
+	}
+	unset( $country_locale );
+
+	return $locale;
+}, 99 );
+
+add_filter( 'woocommerce_get_country_locale_default', function ( $fields ) {
+	if ( ! function_exists( 'is_checkout' ) || ! is_checkout() ) {
+		return $fields;
+	}
+
+	$settings = sultan_get_distance_shipping_settings();
+	if ( ! empty( $settings['hide_state_field'] ) && isset( $fields['state'] ) ) {
+		$fields['state']['hidden']   = true;
+		$fields['state']['required'] = false;
+	}
+
+	return $fields;
+}, 99 );
 
 // Check if ordering is currently allowed.
 function sultan_pickup_orders_are_closed() {
@@ -556,11 +780,11 @@ add_action( 'woocommerce_checkout_process', function () {
 	}
 } );
 
-add_action( 'woocommerce_checkout_process', function () {
-	if ( WC()->cart && ! sultan_minimum_order_is_met( WC()->cart->get_cart_contents_total() ) ) {
-		wc_add_notice( sultan_get_minimum_order_error_message(), 'error' );
+add_action( 'woocommerce_after_checkout_validation', function ( $data, $errors ) {
+	if ( WC()->cart && WC()->cart->needs_shipping() && ! sultan_customer_selected_local_pickup() && ! sultan_minimum_order_is_met( WC()->cart->get_cart_contents_total() ) ) {
+		$errors->add( 'sultan_minimum_order', sultan_get_minimum_order_error_message() );
 	}
-} );
+}, 10, 2 );
 
 // Classic checkout validation for opening hours / disable switch.
 add_action( 'woocommerce_checkout_process', function () {
@@ -695,6 +919,7 @@ function sultan_get_default_distance_shipping_settings() {
 		'browser_api_key' => SULTAN_GOOGLE_MAPS_BROWSER_API_KEY,
 		'store_address'   => SULTAN_STORE_ADDRESS,
 		'enable_pickup'   => true,
+		'hide_state_field' => false,
 		'pickup_label'    => __( 'Local pickup', 'sultan-checkout-time' ),
 		'closed_days'     => [ 'Sunday' ],
 		'weekly_schedule' => $weekly_schedule,
@@ -744,6 +969,7 @@ function sultan_sanitize_distance_shipping_settings( $input ) {
 		'browser_api_key' => sanitize_text_field( $input['browser_api_key'] ?? '' ),
 		'store_address'   => sanitize_text_field( $input['store_address'] ?? '' ),
 		'enable_pickup'   => ! empty( $input['enable_pickup'] ),
+		'hide_state_field' => ! empty( $input['hide_state_field'] ),
 		'pickup_label'    => sanitize_text_field( $input['pickup_label'] ?? $defaults['pickup_label'] ),
 		'closed_days'     => [],
 		'weekly_schedule' => [],
@@ -1212,7 +1438,7 @@ function sultan_get_no_delivery_message() {
 	if ( 'over_limit' === ( $status['status'] ?? '' ) ) {
 		return sprintf(
 			/* translators: %s: maximum delivery distance in kilometers */
-			__( 'Delivery is not available. This address is farther than our %s km delivery limit.', 'sultan-checkout-time' ),
+			__( 'Sorry, delivery is not available to this postcode. Our delivery radius is up to %s km.', 'sultan-checkout-time' ),
 			number_format_i18n( $settings['max_distance'], 1 )
 		);
 	}
@@ -1240,7 +1466,7 @@ function sultan_add_local_pickup_rate( $rates, $unavailable_delivery = false ) {
 	foreach ( $rates as $rate ) {
 		if ( 'local_pickup' === $rate->get_method_id() ) {
 			if ( $unavailable_delivery ) {
-				$rate->set_label( $rate->get_label() . ' — ' . __( 'delivery is not available for this address', 'sultan-checkout-time' ) );
+				$rate->set_label( $rate->get_label() . ' — ' . __( 'Sorry, delivery is not available to this postcode.', 'sultan-checkout-time' ) );
 			}
 
 			return $rates;
@@ -1250,7 +1476,7 @@ function sultan_add_local_pickup_rate( $rates, $unavailable_delivery = false ) {
 	$label = $settings['pickup_label'] ?: __( 'Local pickup', 'sultan-checkout-time' );
 
 	if ( $unavailable_delivery ) {
-		$label .= ' — ' . __( 'delivery is not available for this address', 'sultan-checkout-time' );
+		$label .= ' — ' . __( 'Sorry, delivery is not available to this postcode.', 'sultan-checkout-time' );
 	}
 
 	$rates['sultan_local_pickup'] = new WC_Shipping_Rate(
@@ -1405,7 +1631,7 @@ add_action( 'woocommerce_checkout_process', function () {
 		wc_add_notice(
 			sprintf(
 				/* translators: %s: maximum delivery distance in kilometers */
-				__( 'Delivery is not available for distances over %s km.', 'sultan-checkout-time' ),
+				__( 'Sorry, delivery is not available to this postcode. Our delivery radius is up to %s km.', 'sultan-checkout-time' ),
 				number_format_i18n( $settings['max_distance'], 1 )
 			),
 			'error'
@@ -1435,14 +1661,34 @@ add_action(
 			$products_total += (float) $item->get_total();
 		}
 
-		if ( ! sultan_minimum_order_is_met( $products_total ) ) {
-			throw new Exception( sultan_get_minimum_order_error_message() );
+		$fixed_country = sultan_get_fixed_shipping_country();
+		if ( '' !== $fixed_country ) {
+			$order_billing_country  = $order->get_billing_country();
+			$order_shipping_country = $order->get_shipping_country();
+			if (
+				( '' !== $order_billing_country && $fixed_country !== $order_billing_country ) ||
+				( '' !== $order_shipping_country && $fixed_country !== $order_shipping_country )
+			) {
+				throw new Exception( __( 'Sorry, we do not deliver to the selected country.', 'sultan-checkout-time' ) );
+			}
+
+			$order->set_billing_country( $fixed_country );
+			$order->set_shipping_country( $fixed_country );
 		}
 
-		foreach ( $order->get_items( 'shipping' ) as $shipping_item ) {
+		$shipping_items = $order->get_items( 'shipping' );
+		if ( empty( $shipping_items ) ) {
+			return;
+		}
+
+		foreach ( $shipping_items as $shipping_item ) {
 			if ( 'local_pickup' === $shipping_item->get_method_id() || 'sultan_local_pickup' === $shipping_item->get_method_id() ) {
 				return;
 			}
+		}
+
+		if ( ! sultan_minimum_order_is_met( $products_total ) ) {
+			throw new Exception( sultan_get_minimum_order_error_message() );
 		}
 
 		$address_1 = $order->get_shipping_address_1();
@@ -1486,7 +1732,7 @@ add_action(
 			throw new Exception(
 				sprintf(
 					/* translators: %s: maximum delivery distance in kilometers */
-					__( 'Delivery is not available. This address is farther than our %s km delivery limit.', 'sultan-checkout-time' ),
+					__( 'Sorry, delivery is not available to this postcode. Our delivery radius is up to %s km.', 'sultan-checkout-time' ),
 					number_format_i18n( $settings['max_distance'], 1 )
 				)
 			);
