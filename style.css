@@ -165,3 +165,85 @@
 	cursor: not-allowed !important;
 	opacity: 1;
 }
+
+.sultan-minimum-disabled {
+	background-color: #dcdcde !important;
+	border-color: #dcdcde !important;
+	color: #50575e !important;
+	cursor: not-allowed !important;
+	opacity: 1;
+	pointer-events: none;
+}
+
+.sultan-delivery-status {
+	margin-top: 8px;
+	padding: 9px 12px;
+	border-left: 3px solid #64748b;
+	background: #f1f5f9;
+	color: #1f2937;
+	font-size: 14px;
+}
+
+.sultan-delivery-status.is-checking {
+	border-color: #b45309;
+	background: #fff7ed;
+}
+
+.sultan-delivery-status.is-available {
+	border-color: #15803d;
+	background: #f0fdf4;
+}
+
+.sultan-delivery-status.is-unavailable,
+.sultan-delivery-status.is-error {
+	border-color: #b91c1c;
+	background: #fef2f2;
+}
+
+.sultan-cart-recommendations {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 12px;
+	margin-top: 12px;
+}
+
+.sultan-cart-recommendation {
+	min-width: 0;
+	padding: 10px;
+	border: 1px solid #e5e7eb;
+	background: #fff;
+}
+
+.sultan-cart-recommendation__product {
+	display: grid;
+	gap: 7px;
+	color: inherit;
+	text-decoration: none;
+}
+
+.sultan-cart-recommendation__product img {
+	width: 100%;
+	height: 110px;
+	object-fit: cover;
+}
+
+.sultan-cart-recommendation__price {
+	display: block;
+	margin-top: 6px;
+	font-weight: 600;
+}
+
+.sultan-cart-recommendation__add {
+	display: inline-block;
+	margin-top: 8px;
+}
+
+@media (max-width: 480px) {
+	.sultan-cart-recommendations {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.sultan-cart-recommendation__product img {
+		height: 90px;
+	}
+}
