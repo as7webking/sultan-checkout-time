@@ -2,7 +2,7 @@
 /*
 Plugin Name: Sultan Checkout Time
 Description: Add pickup time selection to WooCommerce checkout with admin settings.
-Version: 1.6.0
+Version: 1.6.1
 Author: Ahmed Sultanline
 Author URI: https://ahmedsultanline.com
 Text Domain: sultan-checkout-time
