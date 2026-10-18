@@ -115,9 +115,11 @@ add_action( 'wp_enqueue_scripts', function () {
 			'addProductLabel' => __( 'Add', 'sultan-checkout-time' ),
 			'deliveryChecking' => __( 'Checking delivery availability...', 'sultan-checkout-time' ),
 			'deliveryIncomplete' => __( 'Enter your street, postcode, city, and country to check delivery.', 'sultan-checkout-time' ),
+			'deliveryIncompleteCart' => __( 'Enter your postcode, city, and country to calculate delivery.', 'sultan-checkout-time' ),
 			'deliveryAvailable' => __( 'Delivery available: %1$s km, %2$s delivery fee.', 'sultan-checkout-time' ),
 			'deliveryUnavailable' => __( 'Sorry, delivery is not available to this address.', 'sultan-checkout-time' ),
 			'deliveryError' => __( 'Delivery could not be checked right now. Please try again.', 'sultan-checkout-time' ),
+			'termsRequired' => __( 'Please check this box to accept the privacy policy and continue.', 'sultan-checkout-time' ),
 		]
 	);
 } );
@@ -146,6 +148,7 @@ add_action( 'admin_init', function () {
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_end_hour', [ 'type' => 'integer' ] );
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_days', [ 'type' => 'array' ] );
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_disable_orders', [ 'type' => 'boolean' ] );
+	register_setting( 'sultan_pickup_settings', 'sultan_hide_checkout_email', [ 'type' => 'boolean' ] );
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_order_start', [ 'type' => 'string' ] );
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_order_end', [ 'type' => 'string' ] );
 	register_setting( 'sultan_pickup_settings', 'sultan_pickup_interval', [ 'type' => 'integer' ] );
@@ -177,6 +180,19 @@ add_action( 'admin_init', function () {
 			$value = get_option( 'sultan_pickup_disable_orders', false );
 			echo '<label><input type="checkbox" name="sultan_pickup_disable_orders" value="1" ' . checked( 1, $value, false ) . '> ';
 			echo esc_html__( 'Temporarily disable checkout', 'sultan-checkout-time' ) . '</label>';
+		},
+		'sultan_pickup_settings',
+		'sultan_pickup_section'
+	);
+
+	add_settings_field(
+		'sultan_hide_checkout_email',
+		__( 'Checkout email field', 'sultan-checkout-time' ),
+		function () {
+			$value = get_option( 'sultan_hide_checkout_email', false );
+			echo '<label><input type="checkbox" name="sultan_hide_checkout_email" value="1" ' . checked( 1, $value, false ) . '> ';
+			echo esc_html__( 'Hide email and make it optional (classic checkout only)', 'sultan-checkout-time' ) . '</label>';
+			echo '<p class="description">' . esc_html__( 'WooCommerce Checkout Block requires an email address for order processing, so this setting does not hide the email field there.', 'sultan-checkout-time' ) . '</p>';
 		},
 		'sultan_pickup_settings',
 		'sultan_pickup_section'
@@ -539,6 +555,9 @@ add_filter( 'woocommerce_checkout_fields', function ( $fields ) {
 	$settings = sultan_get_distance_shipping_settings();
 	if ( ! empty( $settings['hide_state_field'] ) ) {
 		unset( $fields['billing']['billing_state'], $fields['shipping']['shipping_state'] );
+	}
+	if ( get_option( 'sultan_hide_checkout_email', false ) ) {
+		unset( $fields['billing']['billing_email'] );
 	}
 
 	return $fields;
@@ -1312,11 +1331,7 @@ function sultan_get_package_destination_address( $package ) {
 		? $package['destination']
 		: [];
 
-	if (
-		empty( $destination['address'] ) ||
-		empty( $destination['city'] ) ||
-		empty( $destination['country'] )
-	) {
+	if ( empty( $destination['city'] ) || empty( $destination['country'] ) || ( empty( $destination['address'] ) && empty( $destination['postcode'] ) ) ) {
 		return '';
 	}
 
@@ -1469,8 +1484,10 @@ function sultan_ajax_check_delivery_availability() {
 	$city      = isset( $_POST['city'] ) ? sanitize_text_field( wp_unslash( $_POST['city'] ) ) : '';
 	$state     = isset( $_POST['state'] ) ? sanitize_text_field( wp_unslash( $_POST['state'] ) ) : '';
 	$country   = isset( $_POST['country'] ) ? strtoupper( sanitize_text_field( wp_unslash( $_POST['country'] ) ) ) : '';
+	$context   = isset( $_POST['context'] ) ? sanitize_key( wp_unslash( $_POST['context'] ) ) : 'checkout';
+	$is_cart_context = 'cart' === $context;
 
-	if ( '' === $address_1 || '' === $postcode || '' === $city || '' === $country ) {
+	if ( ( ! $is_cart_context && '' === $address_1 ) || '' === $postcode || '' === $city || '' === $country ) {
 		wp_send_json_success( [ 'status' => 'incomplete' ] );
 	}
 
