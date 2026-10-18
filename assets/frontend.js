@@ -339,8 +339,9 @@
 		}
 
 		var address = getDeliveryAddress(config);
-		if (!address.address_1 || !address.postcode || !address.city || !address.country) {
-			setDeliveryStatus(address.prefix, 'incomplete', config.deliveryIncomplete || 'Enter your full delivery address to check delivery.');
+		if ((!config.isCart && !address.address_1) || !address.postcode || !address.city || !address.country) {
+			var incompleteMessage = config.isCart ? (config.deliveryIncompleteCart || 'Enter your postcode, city, and country to calculate delivery.') : (config.deliveryIncomplete || 'Enter your full delivery address to check delivery.');
+			setDeliveryStatus(address.prefix, 'incomplete', incompleteMessage);
 			return;
 		}
 
@@ -349,6 +350,7 @@
 		var payload = new URLSearchParams();
 		payload.set('action', 'sultan_check_delivery');
 		payload.set('nonce', config.deliveryNonce || '');
+		payload.set('context', config.isCart ? 'cart' : 'checkout');
 		Object.keys(address).forEach(function (key) {
 			if ('prefix' !== key) {
 				payload.set(key, address[key]);
@@ -378,7 +380,8 @@
 						.replace('%2$s', data.fee || '');
 					setDeliveryStatus(address.prefix, 'available', message);
 				} else if ('incomplete' === data.status) {
-					setDeliveryStatus(address.prefix, 'incomplete', config.deliveryIncomplete || 'Enter your full delivery address to check delivery.');
+					var incompleteMessage = config.isCart ? (config.deliveryIncompleteCart || 'Enter your postcode, city, and country to calculate delivery.') : (config.deliveryIncomplete || 'Enter your full delivery address to check delivery.');
+					setDeliveryStatus(address.prefix, 'incomplete', incompleteMessage);
 				} else if ('error' === data.status) {
 					setDeliveryStatus(address.prefix, 'error', data.message || config.deliveryError || 'Delivery could not be checked right now.');
 				} else {
@@ -404,6 +407,53 @@
 		}
 		return /(?:billing|shipping|calc_shipping)[_-](?:address[_-]1|address[_-]2|postcode|city|state|country)$/.test(element.name || element.id);
 	}
+
+	function getTermsCheckbox() {
+		return document.querySelector('input[name="terms"], .wc-block-checkout__terms input[type="checkbox"]');
+	}
+
+	function showTermsError(checkbox) {
+		var config = window.sultanCheckoutConfig || {};
+		var container = checkbox.closest('.woocommerce-terms-and-conditions-wrapper, .wc-block-checkout__terms, .form-row') || checkbox.parentElement;
+		if (!container) {
+			return;
+		}
+
+		var error = container.querySelector('.sultan-terms-error');
+		if (!error) {
+			error = document.createElement('p');
+			error.className = 'sultan-terms-error';
+			error.setAttribute('role', 'alert');
+			error.textContent = config.termsRequired || 'Please check this box to accept the privacy policy and continue.';
+			container.appendChild(error);
+		}
+		checkbox.focus();
+	}
+
+	function validateTerms(event) {
+		var checkbox = getTermsCheckbox();
+		if (checkbox && !checkbox.checked) {
+			event.preventDefault();
+			event.stopPropagation();
+			showTermsError(checkbox);
+		}
+	}
+
+	document.addEventListener('submit', validateTerms, true);
+	document.addEventListener('click', function (event) {
+		if (event.target.closest('#place_order, .wc-block-components-checkout-place-order-button')) {
+			validateTerms(event);
+		}
+	}, true);
+	document.addEventListener('change', function (event) {
+		if ('terms' === event.target.name && event.target.checked) {
+			var container = event.target.closest('.woocommerce-terms-and-conditions-wrapper, .wc-block-checkout__terms, .form-row');
+			var error = container && container.querySelector('.sultan-terms-error');
+			if (error) {
+				error.remove();
+			}
+		}
+	});
 
 	document.addEventListener('click', function (event) {
 		var disabledCheckout = event.target.closest('.sultan-minimum-disabled');
