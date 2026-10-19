@@ -200,6 +200,12 @@
 	background: #fef2f2;
 }
 
+.sultan-terms-error {
+	margin: 6px 0 0;
+	color: #b91c1c;
+	font-size: 14px;
+}
+
 .sultan-cart-recommendations {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
